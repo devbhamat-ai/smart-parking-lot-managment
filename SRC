@@ -1,0 +1,128 @@
+import uuid
+import datetime
+import time
+import math
+
+# Define a constant for the hourly parking rate
+HOURLY_RATE = 2.50  # $2.50 per hour
+
+class Car:
+    def __init__(self, license_plate):
+        self.license_plate = license_plate
+        self.parked_time = datetime.datetime.now()
+        self.id = uuid.uuid4()
+
+class Node:
+    def __init__(self, data=None):
+        self.data = data
+        self.next = None
+
+class SmartParkingLot:
+    def __init__(self, capacity):
+        self.capacity = capacity
+        self.head = None
+        self.current_size = 0
+
+    def park_car(self, license_plate):
+        """Parks a car if there is space available."""
+        if self.current_size >= self.capacity:
+            print("Parking lot is full. Cannot park new car.")
+            return False
+
+        new_car = Car(license_plate)
+        new_node = Node(new_car)
+
+        if not self.head:
+            self.head = new_node
+        else:
+            current = self.head
+            while current.next:
+                current = current.next
+            current.next = new_node
+
+        self.current_size += 1
+        print(f"Car with license plate '{new_car.license_plate}' parked at {new_car.parked_time.strftime('%Y-%m-%d %H:%M:%S')}. "
+              f"Current size: {self.current_size}/{self.capacity}")
+        return True
+
+    def calculate_fare(self, parked_time):
+        """Calculates the parking fare based on the duration."""
+        current_time = datetime.datetime.now()
+        duration = current_time - parked_time
+
+        # Calculate duration in hours, rounded up to the nearest whole hour
+        duration_hours = duration.total_seconds() / 3600
+        billed_hours = math.ceil(duration_hours)
+        if billed_hours == 0:
+            billed_hours = 1 # Minimum charge is for one hour
+
+        fare = billed_hours * HOURLY_RATE
+
+        print(f"Car was parked for {duration_hours:.2f} hours. Billed for {billed_hours} hours.")
+        return fare
+
+    def remove_car(self, license_plate):
+        """Removes a car from the lot by license plate and calculates the fare."""
+        current = self.head
+        previous = None
+
+        while current:
+            if current.data.license_plate == license_plate:
+
+                # Calculate fare before removing the car
+                fare = self.calculate_fare(current.data.parked_time)
+                print(f"Fare for car '{license_plate}' is: ${fare:.2f}")
+
+                if previous:
+                    previous.next = current.next
+                else:
+                    self.head = current.next
+                self.current_size -= 1
+
+                print(f"Car with license plate '{license_plate}' removed. "
+                      f"Current size: {self.current_size}/{self.capacity}")
+                return True
+            previous = current
+            current = current.next
+
+        print(f"Car with license plate '{license_plate}' not found.")
+        return False
+
+    def display_cars(self):
+        """Displays all currently parked cars with their details."""
+        if not self.head:
+            print("Parking lot is empty.")
+            return
+
+        print("\n--- Parked Cars ---")
+        current = self.head
+        while current:
+            parked_time_str = current.data.parked_time.strftime('%Y-%m-%d %H:%M:%S')
+            print(f"License Plate: {current.data.license_plate} | Parked at: {parked_time_str}")
+            current = current.next
+        print("-------------------\n")
+
+if __name__ == "__main__":
+    lot = SmartParkingLot(capacity=3)
+
+    lot.park_car("ABC-123")
+    lot.park_car("XYZ-789")
+    lot.display_cars()
+
+    lot.park_car("LMN-456")
+    lot.park_car("OPQ-000") # This should fail due to overflow
+
+    # Wait for a few seconds to demonstrate a non-zero fare
+    print("Simulating some time passing...")
+    time.sleep(5)
+
+    lot.remove_car("XYZ-789")
+    lot.remove_car("NON-EXISTENT")
+
+    lot.display_cars()
+
+    print("\n--- Parking another car to demonstrate a longer stay ---")
+    lot.park_car("GHI-456")
+    time.sleep(10)
+    lot.remove_car("GHI-456")
+     
